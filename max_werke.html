@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kreationen</title>
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111111;
+      --muted:#eaeaea;
+      --muted-2:#f5f5f5;
+      --shadow: 0 6px 24px rgba(0,0,0,.08);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"}
+
+    /* Header / Nav */
+    header{
+      position:sticky;top:0;z-index:50;background:rgba(255,255,255,.85);backdrop-filter:saturate(180%) blur(10px);
+      border-bottom:1px solid var(--muted);
+    }
+    .container{max-width:1100px;margin:0 auto;padding:18px 16px}
+    .brand{display:flex;gap:10px;align-items:center;justify-content:center}
+    .title{font-weight:600;letter-spacing:.2px;user-select:none}
+
+    .mode-switch{display:flex;gap:8px;justify-content:center;margin-top:10px}
+    .tab{
+      appearance:none;border:1px solid var(--muted);background:var(--muted-2);color:var(--fg);
+      padding:8px 14px;border-radius:999px;cursor:pointer;transition:all .2s ease; font-weight:500
+    }
+    .tab[aria-pressed="true"]{background:var(--fg);color:#fff;border-color:var(--fg);box-shadow:var(--shadow)}
+    .tab:focus-visible{outline:2px solid #000}
+
+    /* Sections */
+    main{padding:28px 16px}
+    .grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    @media (max-width: 980px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width: 600px){.grid{grid-template-columns:1fr}}
+
+    .card{position:relative;border:1px solid var(--muted);background:#fff;overflow:hidden;box-shadow:var(--shadow)}
+    .card img, .card iframe{display:block;width:100%;aspect-ratio:1/1;object-fit:cover}
+
+    [hidden]{display:none !important}
+
+    .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:24px;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s ease}
+    .lightbox.open{opacity:1;pointer-events:auto}
+    .lightbox img, .lightbox iframe{max-width:min(1200px,92vw);max-height:88vh;display:none;box-shadow:0 10px 50px rgba(0,0,0,.45)}
+    .lightbox img.active, .lightbox iframe.active{display:block}
+    .lightbox .close{position:absolute;top:14px;right:14px;border:none;background:#fff;border-radius:999px;padding:8px 12px;font-weight:600;cursor:pointer}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="brand">
+        <span class="title">Kreationen</span>
+      </div>
+      <div class="mode-switch" role="tablist" aria-label="Ansicht wählen">
+        <button class="tab" role="tab" id="tab-bilder" aria-controls="panel-bilder" aria-pressed="true">Bilder</button>
+        <button class="tab" role="tab" id="tab-videos" aria-controls="panel-videos" aria-pressed="false">Videos</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="panel-bilder" class="grid" role="tabpanel" aria-labelledby="tab-bilder"></section>
+    <section id="panel-videos" class="grid" role="tabpanel" aria-labelledby="tab-videos" hidden></section>
+  </main>
+
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <button class="close" aria-label="Schliessen">✕</button>
+    <img id="lightbox-img" alt="Ansicht" src="" />
+    <iframe id="lightbox-video" frameborder="0" allowfullscreen></iframe>
+  </div>
+
+  <script>
+    const IMAGE_FILES = [
+      'images/%g2.png','images/1000yard.png','images/C63E9253-D504-47E3-9337-6D2CF38B63C6_1_105_c.png','images/Camoman.png','images/DarijoFortnite.png','images/EliaFrozen.png','images/Freezerbattle.png','images/Hafti.png','images/Höli.png','images/Humble.png','images/IMG_2550.jpeg','images/JUREKVZ.png','images/Jonessy.png','images/Manschaft.png','images/New Project.png','images/Pharao.png','images/Screenshot 2024-10-02 at 10.01.24.png','images/Screenshot 2024-10-02 at 10.08.03.png','images/Sugarcane.png','images/Unbenannt-1 2.png','images/Unbenannt-1.png','images/Unbenannt-1adsw.png','images/Untitled-2.png','images/abokutopg.png','images/ali.png','images/baba.png','images/ccaterpillae.png','images/emo.png','images/figgreal.png','images/fred inv 2.png','images/gato.png','images/gehirn schimmel.png','images/grüpli.png','images/hilfmir.png','images/hombres.png','images/hster.png','images/hydraulish.png','images/iceelia.png','images/ifsher.png','images/jugger.png','images/kampfklub.png','images/kaspicrack.png','images/leningston.png','images/marseille.png','images/mine.png','images/müsli.png','images/patrick.png','images/pulp.png','images/roucher.png','images/stevemerson.png','images/suffelia.png','images/wither.png'
+    ];
+
+    const VIDEO_FILES = [
+      'https://www.youtube.com/embed/ig2Gz8nzGZ0',
+      'https://www.youtube.com/embed/pYoPAh5ftbw',
+      'https://www.youtube.com/embed/njftQdIThfE',
+      'https://www.youtube.com/embed/Kzz4NtwNpZY',
+      'https://www.youtube.com/embed/6px_LqBz6cg'
+    ];
+
+    const gridImages = document.getElementById('panel-bilder');
+    const gridVideos = document.getElementById('panel-videos');
+
+    function renderImages(){
+      gridImages.innerHTML = '';
+      IMAGE_FILES.forEach(src => {
+        const card = document.createElement('figure');
+        card.className = 'card';
+        const img = document.createElement('img');
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.src = src;
+        img.alt = '';
+        img.addEventListener('click', () => openLightbox({type:'image', src}));
+        card.appendChild(img);
+        gridImages.appendChild(card);
+      });
+    }
+
+    function renderVideos(){
+      gridVideos.innerHTML = '';
+      VIDEO_FILES.forEach(src => {
+        const card = document.createElement('figure');
+        card.className = 'card';
+        const iframe = document.createElement('iframe');
+        iframe.src = src;
+        iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+        iframe.loading = 'lazy';
+        iframe.addEventListener('click', () => openLightbox({type:'video', src}));
+        card.appendChild(iframe);
+        gridVideos.appendChild(card);
+      });
+    }
+
+    const lightbox = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightbox-img');
+    const lbVideo = document.getElementById('lightbox-video');
+    const closeBtn = lightbox.querySelector('.close');
+
+    function openLightbox({type, src}){
+      lbImg.classList.remove('active');
+      lbVideo.classList.remove('active');
+      lbVideo.src = '';
+
+      if(type === 'image'){
+        lbImg.src = src;
+        lbImg.classList.add('active');
+      } else {
+        lbVideo.src = src + "?autoplay=1";
+        lbVideo.classList.add('active');
+      }
+
+      lightbox.classList.add('open');
+      lightbox.setAttribute('aria-hidden', 'false');
+      document.addEventListener('keydown', onKey);
+    }
+
+    function closeLightbox(){
+      lightbox.classList.remove('open');
+      lightbox.setAttribute('aria-hidden', 'true');
+      lbImg.src = '';
+      lbImg.classList.remove('active');
+      lbVideo.src = '';
+      lbVideo.classList.remove('active');
+      document.removeEventListener('keydown', onKey);
+    }
+
+    function onKey(e){ if(e.key === 'Escape') closeLightbox(); }
+    closeBtn.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', (e)=>{ if(e.target === lightbox) closeLightbox(); });
+
+    const tabBilder = document.getElementById('tab-bilder');
+    const tabVideos = document.getElementById('tab-videos');
+
+    function setMode(mode){
+      const isBilder = mode === 'bilder';
+      tabBilder.setAttribute('aria-pressed', String(isBilder));
+      tabVideos.setAttribute('aria-pressed', String(!isBilder));
+      gridImages.hidden = !isBilder;
+      gridVideos.hidden = isBilder;
+      if(!isBilder){
+        gridVideos.scrollIntoView({behavior:'smooth', block:'start'});
+      }
+    }
+
+    tabBilder.addEventListener('click', () => setMode('bilder'));
+    tabVideos.addEventListener('click', () => setMode('videos'));
+
+    renderImages();
+    renderVideos();
+    setMode('bilder');
+  </script>
+</body>
+</html>
